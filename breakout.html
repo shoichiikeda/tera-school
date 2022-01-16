@@ -1,0 +1,154 @@
+<canvas id="canvas" width="600" height="400"></canvas>
+
+<script>
+    //絵を書く時のお約束
+    var ctx = document.querySelector("#canvas").getContext("2d");
+    setInterval(draw, 10);
+
+    //絶対に変数内の値を変更しない：定数
+    const WIDTH = 600;
+    const HEIGHT = 400;
+
+    const CR =  5;
+
+    //ゲームの開始点 玉の位置
+    var cx = 300;
+    var cy = 300;
+    var vx = 0;
+    var vy = 0;
+
+    //台の位置
+    var tx = 300;
+    var ty = 305;
+    var destTx = 300;
+    var destTy = 305;
+
+    //ブロックの位置
+    var blocks = [
+        [80, 30, 80, 10], [170, 30, 80, 10], [260, 30, 80, 10], [350, 30, 80, 10], [440, 30, 80, 10],
+        [80, 50, 80, 10], [170, 50, 80, 10], [260, 50, 80, 10], [350, 50, 80, 10], [440, 50, 80, 10],
+        [80, 70, 80, 10], [170, 70, 80, 10], [260, 70, 80, 10], [350, 70, 80, 10], [440, 70, 80, 10],
+        [80, 90, 80, 10], [170, 90, 80, 10], [260, 90, 80, 10], [350, 90, 80, 10], [440, 90, 80, 10],
+        [80, 110, 80, 10], [170, 110, 80, 10], [260, 110, 80, 10], [350, 110, 80, 10], [440, 110, 80, 10],
+    ].map(t => ({x: t[0], y: t[1], w: t[2], h: t[3], e: true}));
+
+    //玉が発射済みかどうか
+    var detached = false;
+
+    //台の幅
+    var tw = 25;
+
+    //台の動くスピード
+    var speed = 5;
+
+    function mouseMoveHandler(e) {
+        if (tw <= e.clientX && e.clientX <= WIDTH - tw) {
+            destTx = e.clientX;
+        } else if (e.clientX < tw) {
+            destTx = tw;
+        } else if (e.clientX > WIDTH - tw) {
+            destTx = WIDTH - tw;
+        }
+    }
+
+    document.addEventListener("mousemove", mouseMoveHandler);
+
+    function keyDownHandler(e) {
+        detached = true;
+        vx = 1;
+        vy = -1;
+    }
+
+    document.addEventListener("keydown", keyDownHandler);
+
+    function draw() {
+        //ゲームの画面
+        ctx.beginPath();
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "white";
+        ctx.rect(0, 0, WIDTH, HEIGHT);
+        ctx.fill();
+        ctx.stroke();
+
+        //台の位置変化
+        tx = tx + (destTx - tx) * 0.1;
+        ty = ty + (destTy - ty) * 0.1;
+
+        //玉が発射されてなければ台についてまわる
+        if (!detached) {
+            cx = tx;
+            cy = ty - CR;
+        //発射されている場合は衝突判定をおこなう
+        } else {
+            //外枠との衝突判定
+            {
+                if (cx < 0 + CR || WIDTH - CR < cx) {
+                    vx = -vx;
+                }
+                if (cy < 0 + CR) {
+                    vy = -vy;
+                }
+                if (cy > HEIGHT - CR) {
+                    detached = false;
+                }
+            }
+            //台との衝突判定
+            if (vy > 0 && tx - tw <= cx && cx <= tx + tw && ty - CR == cy) {
+                vy = -vy;
+            }
+            //ブロックとの衝突判定
+            for (i in blocks) {
+                var b = blocks[i];
+                if (b.e) {
+                    //下から
+                    if (vy < 0 && b.x <= cx && cx <= b.x + b.w && b.y + b.h + CR == cy) {
+                        vy = -vy;
+                        b.e = false;
+                    }
+                    //上から
+                    if (vy > 0 && b.x <= cx && cx <= b.x + b.w && b.y - CR == cy) {
+                        vy = -vy;
+                        b.e = false;
+                    }
+                    //左から
+                    if (vx > 0 && b.y <= cy && cy <= b.y + b.h && b.x - CR == cx) {
+                        vx = -vx;
+                        b.e = false;
+                    }
+                    //右から
+                    if (vx < 0 && b.y <= cy && cy <= b.y + b.h && b.x + b.w + CR == cx) {
+                        vx = -vx;
+                        b.e = false;
+                    }
+                }
+            }
+        }
+
+        //玉の位置変化
+        cx += vx;
+        cy += vy;
+
+        //玉の描画
+        ctx.beginPath();
+        ctx.fillStyle = "black";
+        ctx.arc(cx, cy, CR, 0, 2 * Math.PI)
+        ctx.fill();
+
+        //台の描画
+        ctx.beginPath();
+        ctx.fillStyle = "black";
+        ctx.rect(tx - tw, ty, tw * 2, 5);
+        ctx.fill();
+
+        //ブロックの描画
+        for (i in blocks) {
+            var b = blocks[i];
+            if (b.e) {
+                ctx.beginPath();
+                ctx.fillStyle = "black";
+                ctx.rect(b.x, b.y, b.w, b.h);
+                ctx.fill();
+            }
+        }
+    }
+</script>
